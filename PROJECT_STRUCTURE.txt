@@ -1,0 +1,207 @@
+YouTube Trends Explorer - POC
+Project Structure
+================================================================================
+
+yotube-trends-poc-v1/
+│
+├── 📄 Configuration Files
+│   ├── docker-compose.yml          # Qdrant vector database setup
+│   ├── requirements.txt            # Python dependencies
+│   ├── .env.example               # Environment variables template
+│   ├── .gitignore                 # Git ignore rules
+│   └── .env                       # Your local config (create from .example)
+│
+├── 📚 Documentation
+│   ├── README.md                  # Project overview and features
+│   ├── QUICKSTART.md              # 5-minute setup guide
+│   ├── SETUP.md                   # Detailed setup instructions
+│   ├── ARCHITECTURE.md            # System design and architecture
+│   ├── ROADMAP.md                 # Future development plans
+│   └── PROJECT_STRUCTURE.txt      # This file
+│
+├── 📦 src/ - Source Code
+│   ├── __init__.py
+│   │
+│   ├── config/                    # Configuration Management
+│   │   ├── __init__.py
+│   │   └── settings.py           # Pydantic settings (env vars, paths)
+│   │
+│   ├── data/                      # Data Processing
+│   │   ├── __init__.py
+│   │   ├── loader.py             # Load CSV files from Kaggle
+│   │   └── preprocessor.py       # Clean, transform, prepare data
+│   │
+│   ├── embeddings/                # Vector Embeddings
+│   │   ├── __init__.py
+│   │   ├── base.py               # Abstract base class
+│   │   ├── local_embeddings.py   # Sentence-transformers (no API key)
+│   │   ├── openai_embeddings.py  # OpenAI embeddings (requires API key)
+│   │   └── factory.py            # Auto-select embedding model
+│   │
+│   ├── vectordb/                  # Qdrant Integration
+│   │   ├── __init__.py
+│   │   ├── client.py             # Qdrant connection & collection mgmt
+│   │   └── operations.py         # Index, search, filter operations
+│   │
+│   └── search/                    # Semantic Search
+│       ├── __init__.py
+│       └── semantic_search.py    # Main search interface
+│
+├── 🔧 scripts/ - Executable Scripts
+│   ├── ingest_data.py            # Full data ingestion pipeline
+│   ├── create_embeddings.py      # Generate embeddings separately
+│   ├── search_demo.py            # Interactive search demo
+│   └── quick_start.py            # Verify setup & run mini demo
+│
+├── 🧪 tests/ - Unit Tests
+│   ├── __init__.py
+│   ├── test_embeddings.py        # Test embedding generation
+│   └── test_vectordb.py          # Test Qdrant operations
+│
+├── 📓 notebooks/ - Jupyter Notebooks
+│   └── exploratory_analysis.ipynb # Interactive data exploration
+│
+├── 💾 data/ - Data Directory (created automatically)
+│   ├── raw/                      # Place Kaggle CSV files here
+│   │   ├── USvideos.csv         # (download from Kaggle)
+│   │   ├── GBvideos.csv         # (download from Kaggle)
+│   │   └── ...                   # Other country files
+│   │
+│   └── processed/                # Processed data (auto-generated)
+│       ├── youtube_processed.parquet
+│       └── embeddings.npy
+│
+└── 🗄️ qdrant_storage/ - Vector Database Storage (auto-created by Docker)
+    └── (Qdrant data files)
+
+
+================================================================================
+Key Components Explained
+================================================================================
+
+1. DATA FLOW
+   CSV Files → DataLoader → Preprocessor → Documents → Embeddings → Qdrant
+
+2. SEARCH FLOW
+   Query → Embedding → Qdrant Search → Results → User
+
+3. CORE MODULES
+
+   📊 Data Module (src/data/)
+   - Loads YouTube CSV files
+   - Cleans text, parses tags
+   - Maps category IDs to names
+   - Creates searchable text fields
+
+   🧠 Embeddings Module (src/embeddings/)
+   - Converts text to vectors
+   - Supports local (free) and OpenAI (paid) models
+   - Default: all-MiniLM-L6-v2 (384 dimensions)
+
+   🗃️ VectorDB Module (src/vectordb/)
+   - Manages Qdrant connection
+   - Creates/deletes collections
+   - Indexes documents with metadata
+   - Performs similarity search
+
+   🔍 Search Module (src/search/)
+   - Semantic search interface
+   - Category filtering
+   - Popularity filtering
+   - Similar video discovery
+
+
+================================================================================
+File Count Summary
+================================================================================
+
+Python Files:        23 files
+Documentation:        5 markdown files
+Configuration:        4 files
+Tests:               2 test files
+Notebooks:           1 notebook
+Scripts:             4 executable scripts
+
+Total Lines of Code: ~2,500+ lines
+
+
+================================================================================
+Technology Stack
+================================================================================
+
+Core:
+  • Python 3.9+
+  • Qdrant (vector database)
+  • Docker & Docker Compose
+
+Libraries:
+  • qdrant-client - Vector DB client
+  • sentence-transformers - Local embeddings
+  • pandas - Data processing
+  • pydantic - Configuration & validation
+  • loguru - Logging
+  • tqdm - Progress bars
+  • fastapi - Future API (included)
+
+Development:
+  • pytest - Testing
+  • black - Code formatting
+  • flake8 - Linting
+  • jupyter - Notebooks
+
+
+================================================================================
+Quick Commands Reference
+================================================================================
+
+Setup:
+  python -m venv venv
+  .\venv\Scripts\activate
+  pip install -r requirements.txt
+  copy .env.example .env
+
+Start Qdrant:
+  docker-compose up -d
+  docker-compose down
+
+Verify Setup:
+  python scripts/quick_start.py
+
+Ingest Data:
+  python scripts/ingest_data.py
+
+Search Demo:
+  python scripts/search_demo.py
+
+Run Tests:
+  pytest tests/
+
+Jupyter:
+  jupyter notebook notebooks/
+
+
+================================================================================
+Next Steps
+================================================================================
+
+1. ✅ Setup complete (you are here)
+2. 📥 Download Kaggle dataset → data/raw/
+3. 🚀 Run: python scripts/ingest_data.py
+4. 🔍 Run: python scripts/search_demo.py
+5. 📊 Explore: notebooks/exploratory_analysis.ipynb
+6. 🎯 Read: ROADMAP.md for future plans
+
+
+================================================================================
+Contact & Support
+================================================================================
+
+For issues or questions:
+  1. Check SETUP.md for troubleshooting
+  2. Review ARCHITECTURE.md for design details
+  3. Read QUICKSTART.md for quick reference
+
+Project Status: POC Complete ✅
+Ready for Phase 1: RAG Integration 🚀
+
+================================================================================
