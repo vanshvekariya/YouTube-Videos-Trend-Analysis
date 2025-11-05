@@ -9,6 +9,17 @@ qdrant-client==1.12.1
 # Data Processing
 pandas==2.1.4
 numpy==1.26.2
+langid==1.1.6
+pycountry==24.6.1
+
+# SQL Database
+sqlalchemy==2.0.23
+
+# LangChain & LangGraph
+langchain==0.1.0
+langchain-community==0.0.10
+langchain-openai==0.0.2
+langgraph==0.0.20
 
 # Embeddings
 sentence-transformers==3.3.1

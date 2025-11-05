@@ -15,8 +15,15 @@ class Settings(BaseSettings):
     qdrant_port: int = 6333
     qdrant_collection_name: str = "youtube_trends"
     
-    # OpenAI Configuration (optional)
+    # SQL Database Configuration
+    sql_db_path: str = "youtube_trends_canada.db"
+    sql_table_name: str = "videos"
+    
+    # OpenAI/LLM Configuration
     openai_api_key: Optional[str] = None
+    openai_base_url: str = "https://openrouter.ai/api/v1"
+    llm_model: str = "anthropic/claude-3-haiku"
+    llm_temperature: float = 0.0
     openai_embedding_model: str = "text-embedding-3-small"
     
     # Local Embeddings Configuration
