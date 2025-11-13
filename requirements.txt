@@ -16,10 +16,10 @@ pycountry==24.6.1
 sqlalchemy==2.0.23
 
 # LangChain & LangGraph
-langchain==0.1.0
-langchain-community==0.0.10
-langchain-openai==0.0.2
-langgraph==0.0.20
+langchain==0.1.20
+langchain-community==0.0.38
+langchain-openai==0.1.8
+langgraph==0.0.55
 
 # Embeddings
 sentence-transformers==3.3.1

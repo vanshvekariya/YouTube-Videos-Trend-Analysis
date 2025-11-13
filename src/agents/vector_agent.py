@@ -77,7 +77,8 @@ class VectorAgent(BaseAgent):
         """Initialize semantic search"""
         try:
             self.search_engine = SemanticSearch(
-                vector_db=self.vector_db,
+                # vector_db=self.vector_db,
+                qdrant_manager=self.vector_db,
                 embedding_model=self.embedding_model
             )
             logger.info("Semantic search engine initialized")

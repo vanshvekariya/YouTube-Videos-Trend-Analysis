@@ -4,8 +4,10 @@ from typing import Dict, Any, Literal, Optional
 from enum import Enum
 
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+# from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
+
 from pydantic import BaseModel, Field
 from loguru import logger
 

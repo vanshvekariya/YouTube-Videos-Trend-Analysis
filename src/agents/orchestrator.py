@@ -164,7 +164,17 @@ class MultiAgentOrchestrator:
         )
         
         # Add edges from agents to synthesis
-        workflow.add_edge("sql_agent", self._check_if_hybrid)
+        # workflow.add_edge("sql_agent", self._check_if_hybrid)
+        workflow.add_conditional_edges(
+    "sql_agent",
+    self._check_if_hybrid,
+    {
+        "vector_agent": "vector_agent",
+        "synthesize": "synthesize"
+    }
+)
+
+
         workflow.add_edge("vector_agent", "synthesize")
         
         # Add edge from synthesis to end
