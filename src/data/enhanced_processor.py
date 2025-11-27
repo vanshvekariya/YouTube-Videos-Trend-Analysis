@@ -8,9 +8,10 @@ import re
 import string
 import langid
 import pycountry
-from typing import Optional
+from typing import Optional, List, Dict, Any, Tuple
 from pathlib import Path
 from loguru import logger
+from tqdm import tqdm
 
 
 class EnhancedYouTubeDataProcessor:
@@ -40,14 +41,16 @@ class EnhancedYouTubeDataProcessor:
         43: "Shows"
     }
     
-    def __init__(self, db_path: str = "youtube_trends_canada.db"):
+    def __init__(self, db_path: str = "youtube_trends_canada.db", embedding_model=None):
         """
         Initialize the processor.
         
         Args:
             db_path: Path to SQLite database file
+            embedding_model: Optional embedding model instance for vectorization
         """
         self.db_path = db_path
+        self.embedding_model = embedding_model
         
     def detect_language(self, text: str) -> str:
         """
@@ -291,13 +294,13 @@ class EnhancedYouTubeDataProcessor:
     
     def prepare_for_vector_db(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Prepare data for vector database indexing.
+        Prepare data for vector database indexing with optimized metadata.
         
         Args:
             df: Final processed DataFrame
             
         Returns:
-            DataFrame with searchable text for embeddings
+            DataFrame with searchable text and metadata for embeddings
         """
         logger.info("Preparing data for vector database...")
         
@@ -324,24 +327,117 @@ class EnhancedYouTubeDataProcessor:
         logger.info(f"Prepared {len(df_vector)} documents for vector database")
         return df_vector
     
+    def create_vector_documents(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
+        """
+        Convert DataFrame to vector database documents with optimized metadata and filters.
+        
+        Args:
+            df: Processed DataFrame with searchable_text
+            
+        Returns:
+            List of documents ready for vector DB indexing
+        """
+        logger.info("Creating vector database documents with metadata...")
+        
+        documents = []
+        
+        for idx, row in df.iterrows():
+            # Parse tags list from string
+            tags_list = []
+            if row['tags'] and row['tags'] != '':
+                tags_list = [tag.strip() for tag in row['tags'].split() if tag.strip()]
+            
+            # Create document with comprehensive metadata for filtering
+            doc = {
+                'id': row['video_id'],
+                'text': row['searchable_text'],
+                'metadata': {
+                    # Core identifiers
+                    'video_id': row['video_id'],
+                    'title': row['title'],
+                    'channel': row['channel_title'],
+                    
+                    # Category information (for filtering)
+                    'category': row['category_name'],
+                    'category_id': int(row['category_id']),
+                    
+                    # Country and language (for filtering)
+                    'country': row['country'],
+                    'language': row['language'],
+                    
+                    # Tags (for filtering and search)
+                    'tags': tags_list,
+                    
+                    # Engagement metrics (for filtering and ranking)
+                    'views': int(row['views']),
+                    'likes': int(row['likes']),
+                    'comment_count': int(row['comment_count']),
+                    
+                    # Temporal features (for filtering)
+                    'publish_time': str(row['publish_time']),
+                    'first_trend_date': str(row['first_trend_date']),
+                    'last_trend_date': str(row['last_trend_date']),
+                    'days_trending_unique': int(row['days_trending_unique']),
+                    'longest_consecutive_streak_days': int(row['longest_consecutive_streak_days']),
+                    
+                    # Description (optional)
+                    'description': row['description'][:500] if row['description'] != '[no description]' else '',
+                }
+            }
+            documents.append(doc)
+        
+        logger.info(f"Created {len(documents)} vector documents with full metadata")
+        return documents
+    
+    def generate_embeddings(self, documents: List[Dict[str, Any]], batch_size: int = 100) -> np.ndarray:
+        """
+        Generate embeddings for documents using the embedding model.
+        
+        Args:
+            documents: List of document dictionaries with 'text' field
+            batch_size: Batch size for embedding generation
+            
+        Returns:
+            Array of embeddings
+        """
+        if self.embedding_model is None:
+            raise ValueError("Embedding model not initialized. Pass embedding_model to __init__()")
+        
+        logger.info(f"Generating embeddings for {len(documents)} documents...")
+        
+        # Extract texts
+        texts = [doc['text'] for doc in documents]
+        
+        # Generate embeddings in batches
+        embeddings = self.embedding_model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress=True
+        )
+        
+        logger.info(f"Generated {len(embeddings)} embeddings (dimension: {embeddings.shape[1]})")
+        return embeddings
+    
     def process_csv_file(
         self,
         csv_path: str,
         country: str = 'CA',
         create_sql: bool = True,
-        prepare_vector: bool = True
-    ) -> tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
+        prepare_vector: bool = True,
+        generate_embeddings: bool = False
+    ) -> Tuple[Optional[pd.DataFrame], Optional[List[Dict[str, Any]]], Optional[np.ndarray]]:
         """
-        Complete processing pipeline from CSV to databases.
+        Complete processing pipeline from CSV to databases with embeddings.
         
         Args:
             csv_path: Path to CSV file
             country: Country code
             create_sql: Whether to create SQL database
             prepare_vector: Whether to prepare vector database data
+            generate_embeddings: Whether to generate embeddings (requires embedding_model)
             
         Returns:
-            Tuple of (sql_df, vector_df)
+            Tuple of (sql_df, vector_documents, embeddings)
         """
         logger.info(f"Loading data from {csv_path}...")
         
@@ -361,7 +457,8 @@ class EnhancedYouTubeDataProcessor:
         final_df = self.create_final_dataframe(df_processed, temporal_features)
         
         sql_df = None
-        vector_df = None
+        vector_documents = None
+        embeddings = None
         
         # Create SQL database
         if create_sql:
@@ -370,10 +467,18 @@ class EnhancedYouTubeDataProcessor:
         
         # Prepare for vector database
         if prepare_vector:
+            # Prepare dataframe with searchable text
             vector_df = self.prepare_for_vector_db(final_df)
+            
+            # Create vector documents with metadata
+            vector_documents = self.create_vector_documents(vector_df)
+            
+            # Generate embeddings if requested
+            if generate_embeddings:
+                embeddings = self.generate_embeddings(vector_documents)
         
         logger.info("✅ Data processing pipeline complete!")
-        return sql_df, vector_df
+        return sql_df, vector_documents, embeddings
 
 
 def main():

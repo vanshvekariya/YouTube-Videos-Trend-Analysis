@@ -253,7 +253,13 @@ class MultiAgentOrchestrator:
         
         try:
             if 'sql' in self.agents:
-                result = self.agents['sql'].process_query(state['query'])
+                # For hybrid queries, extract SQL-specific part
+                query = state['query']
+                if state['routing_info']['classification']['type'] == 'hybrid':
+                    query = self._extract_sql_query(state['query'])
+                    logger.info(f"Extracted SQL query: {query}")
+                
+                result = self.agents['sql'].process_query(query)
                 state['sql_result'] = result
                 logger.info("SQL Agent execution complete")
             else:
@@ -284,7 +290,13 @@ class MultiAgentOrchestrator:
         
         try:
             if 'vector' in self.agents:
-                result = self.agents['vector'].process_query(state['query'])
+                # For hybrid queries, extract Vector-specific part
+                query = state['query']
+                if state['routing_info']['classification']['type'] == 'hybrid':
+                    query = self._extract_vector_query(state['query'])
+                    logger.info(f"Extracted Vector query: {query}")
+                
+                result = self.agents['vector'].process_query(query)
                 state['vector_result'] = result
                 logger.info("Vector Agent execution complete")
             else:
@@ -317,6 +329,87 @@ class MultiAgentOrchestrator:
             return "vector_agent"
         else:
             return "synthesize"
+    
+    def _extract_sql_query(self, query: str) -> str:
+        """
+        Extract SQL-relevant part from a hybrid query.
+        
+        Args:
+            query: Full hybrid query
+            
+        Returns:
+            SQL-specific query part
+        """
+        try:
+            # Use LLM to extract SQL part
+            prompt = f"""Extract ONLY the SQL/analytical part from this query as a clean, standalone question.
+Do not include explanations or descriptions. Return just the query text.
+
+Full Query: {query}
+
+Extracted SQL query (just the question):"""
+            
+            response = self.llm.invoke(prompt)
+            extracted = response.content.strip()
+            
+            # Clean up common LLM artifacts
+            extracted = extracted.replace('"', '').replace("'", '').strip()
+            if extracted.lower().startswith('the '):
+                extracted = extracted[4:]
+            
+            logger.debug(f"Extracted SQL query: {extracted}")
+            return extracted if extracted else query
+            
+        except Exception as e:
+            logger.error(f"Error extracting SQL query: {e}")
+            # Fallback: simple split on common connectors
+            for connector in [' and also ', ' also ', ' and suggest ', ' and find ', ' plus ']:
+                if connector in query.lower():
+                    parts = query.lower().split(connector)
+                    # Return first part (usually the SQL part)
+                    return parts[0].strip()
+            return query
+    
+    def _extract_vector_query(self, query: str) -> str:
+        """
+        Extract Vector-relevant part from a hybrid query.
+        
+        Args:
+            query: Full hybrid query
+            
+        Returns:
+            Vector-specific query part
+        """
+        try:
+            # Use LLM to extract Vector part
+            prompt = f"""Extract ONLY the semantic search/content part from this query as a clean, standalone question.
+Do not include explanations or descriptions. Return just the query text.
+
+Full Query: {query}
+
+Extracted Vector query (just the question):"""
+            
+            response = self.llm.invoke(prompt)
+            extracted = response.content.strip()
+            
+            # Clean up common LLM artifacts
+            extracted = extracted.replace('"', '').replace("'", '').strip()
+            if extracted.lower().startswith('the '):
+                extracted = extracted[4:]
+            
+            logger.debug(f"Extracted Vector query: {extracted}")
+            return extracted if extracted else query
+            
+        except Exception as e:
+            logger.error(f"Error extracting Vector query: {e}")
+            # Fallback: simple split on common connectors
+            for connector in [' and also ', ' also ', ' and suggest ', ' and find ', ' plus ']:
+                if connector in query.lower():
+                    parts = query.lower().split(connector)
+                    # Return second part (usually the Vector part)
+                    if len(parts) > 1:
+                        return parts[1].strip()
+            return query
     
     def _synthesize_response(self, state: AgentState) -> AgentState:
         """

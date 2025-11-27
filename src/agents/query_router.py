@@ -125,19 +125,32 @@ You must classify user queries into one of these types:
    - "Search for motivational content"
    - "Videos discussing climate change"
 
-3. **HYBRID** - For queries requiring both:
-   - Semantic search with statistical filters
-   - Content-based search with aggregations
-   - Complex multi-step analysis
+3. **HYBRID** - For queries requiring BOTH SQL and VECTOR:
+   - Queries with "AND", "ALSO", "PLUS" connecting different requirements
+   - Ranking/statistics (SQL) + content search (VECTOR)
+   - Aggregations (SQL) + semantic search (VECTOR)
+   - Multiple distinct questions in one query
+   
+   IMPORTANT: Look for queries that contain BOTH:
+   - Statistical/ranking keywords (top, most, count, average) AND
+   - Content/semantic keywords (about, related to, similar, videos on)
    
    Examples:
-   - "Find popular gaming videos about Minecraft"
-   - "Most viewed videos about cooking in the last month"
-   - "Top educational content about programming"
+   - "Top 10 gaming channels AND suggest gaming videos about Counter Strike"
+   - "Most viewed cooking videos AND find recipes related to Italian food"
+   - "Show me popular channels in Music category and recommend similar artists"
+   - "Give me statistics on Education videos and also find programming tutorials"
+   - "Top channels by likes and also suggest videos related to [topic]"
 
 4. **UNKNOWN** - For unclear or out-of-scope queries
 
-Analyze the query and provide a classification with reasoning.
+CRITICAL RULES:
+- If query contains TWO distinct parts (connected by AND/ALSO/PLUS), classify as HYBRID
+- If query asks for both rankings/stats AND content recommendations, classify as HYBRID
+- If query mentions both "top/most/count" AND "find/show/suggest/related", classify as HYBRID
+- When in doubt between VECTOR and HYBRID, check if there's a ranking/statistical component
+
+Analyze the query carefully and provide a classification with reasoning.
 
 {format_instructions}
 """),
@@ -298,7 +311,16 @@ class SimpleQueryRouter:
         sql_score = sum(1 for kw in self.SQL_KEYWORDS if kw in query_lower)
         vector_score = sum(1 for kw in self.VECTOR_KEYWORDS if kw in query_lower)
         
-        if sql_score > vector_score:
+        # Check for hybrid indicators
+        hybrid_connectors = ['and also', 'also', 'and suggest', 'and find', 'plus', 'and show']
+        has_hybrid_connector = any(conn in query_lower for conn in hybrid_connectors)
+        
+        # If both SQL and VECTOR keywords present, or has hybrid connectors
+        if (sql_score > 0 and vector_score > 0) or (has_hybrid_connector and (sql_score > 0 or vector_score > 0)):
+            query_type = QueryType.HYBRID
+            confidence = 0.7
+            reasoning = "Query contains both analytical and semantic keywords, or has compound structure"
+        elif sql_score > vector_score:
             query_type = QueryType.SQL
             confidence = min(0.7, 0.5 + sql_score * 0.1)
             reasoning = "Query contains analytical keywords"
@@ -306,10 +328,6 @@ class SimpleQueryRouter:
             query_type = QueryType.VECTOR
             confidence = min(0.7, 0.5 + vector_score * 0.1)
             reasoning = "Query contains semantic search keywords"
-        elif sql_score > 0 and vector_score > 0:
-            query_type = QueryType.HYBRID
-            confidence = 0.6
-            reasoning = "Query contains both analytical and semantic keywords"
         else:
             query_type = QueryType.VECTOR  # Default to vector search
             confidence = 0.5

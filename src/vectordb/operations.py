@@ -116,7 +116,7 @@ class VectorDBOperations:
                 query_filter=qdrant_filter
             )
             
-            # Format results
+            # Format results with enhanced metadata
             formatted_results = []
             for result in results:
                 formatted_results.append({
@@ -125,9 +125,19 @@ class VectorDBOperations:
                     'title': result.payload.get('title', ''),
                     'channel': result.payload.get('channel', ''),
                     'category': result.payload.get('category', ''),
+                    'category_id': result.payload.get('category_id', 0),
+                    'country': result.payload.get('country', ''),
+                    'language': result.payload.get('language', ''),
                     'views': result.payload.get('views', 0),
                     'likes': result.payload.get('likes', 0),
+                    'comment_count': result.payload.get('comment_count', 0),
                     'tags': result.payload.get('tags', []),
+                    'days_trending_unique': result.payload.get('days_trending_unique', 0),
+                    'longest_consecutive_streak_days': result.payload.get('longest_consecutive_streak_days', 0),
+                    'publish_time': result.payload.get('publish_time', ''),
+                    'first_trend_date': result.payload.get('first_trend_date', ''),
+                    'last_trend_date': result.payload.get('last_trend_date', ''),
+                    'description': result.payload.get('description', ''),
                     'text': result.payload.get('text', ''),
                     'metadata': result.payload
                 })
@@ -140,22 +150,43 @@ class VectorDBOperations:
     
     def _build_filter(self, filters: Dict[str, Any]) -> Filter:
         """
-        Build Qdrant filter from dictionary
+        Build Qdrant filter from dictionary with enhanced metadata support.
         
         Args:
-            filters: Filter dictionary
+            filters: Filter dictionary with various filter options:
+                - category: Category name (exact match)
+                - category_id: Category ID (exact match)
+                - country: Country code (exact match)
+                - language: Language name (exact match)
+                - min_views: Minimum views (range)
+                - max_views: Maximum views (range)
+                - min_likes: Minimum likes (range)
+                - max_likes: Maximum likes (range)
+                - min_days_trending: Minimum days trending (range)
+                - max_days_trending: Maximum days trending (range)
+                - channel: Channel name (exact match)
+                - tags: List of tags (any match)
             
         Returns:
             Qdrant Filter object
         """
         conditions = []
         
-        # Category filter
+        # Category filter (name)
         if 'category' in filters:
             conditions.append(
                 FieldCondition(
                     key='category',
                     match=MatchValue(value=filters['category'])
+                )
+            )
+        
+        # Category filter (ID)
+        if 'category_id' in filters:
+            conditions.append(
+                FieldCondition(
+                    key='category_id',
+                    match=MatchValue(value=filters['category_id'])
                 )
             )
         
@@ -168,7 +199,25 @@ class VectorDBOperations:
                 )
             )
         
-        # Minimum views filter
+        # Language filter
+        if 'language' in filters:
+            conditions.append(
+                FieldCondition(
+                    key='language',
+                    match=MatchValue(value=filters['language'])
+                )
+            )
+        
+        # Channel filter
+        if 'channel' in filters:
+            conditions.append(
+                FieldCondition(
+                    key='channel',
+                    match=MatchValue(value=filters['channel'])
+                )
+            )
+        
+        # Views filters
         if 'min_views' in filters:
             conditions.append(
                 FieldCondition(
@@ -177,7 +226,6 @@ class VectorDBOperations:
                 )
             )
         
-        # Maximum views filter
         if 'max_views' in filters:
             conditions.append(
                 FieldCondition(
@@ -185,6 +233,51 @@ class VectorDBOperations:
                     range={'lte': filters['max_views']}
                 )
             )
+        
+        # Likes filters
+        if 'min_likes' in filters:
+            conditions.append(
+                FieldCondition(
+                    key='likes',
+                    range={'gte': filters['min_likes']}
+                )
+            )
+        
+        if 'max_likes' in filters:
+            conditions.append(
+                FieldCondition(
+                    key='likes',
+                    range={'lte': filters['max_likes']}
+                )
+            )
+        
+        # Days trending filters
+        if 'min_days_trending' in filters:
+            conditions.append(
+                FieldCondition(
+                    key='days_trending_unique',
+                    range={'gte': filters['min_days_trending']}
+                )
+            )
+        
+        if 'max_days_trending' in filters:
+            conditions.append(
+                FieldCondition(
+                    key='days_trending_unique',
+                    range={'lte': filters['max_days_trending']}
+                )
+            )
+        
+        # Tags filter (match any tag in the list)
+        if 'tags' in filters and filters['tags']:
+            # For tags, we can use match any
+            for tag in filters['tags']:
+                conditions.append(
+                    FieldCondition(
+                        key='tags',
+                        match=MatchValue(value=tag)
+                    )
+                )
         
         if conditions:
             return Filter(must=conditions)
@@ -244,3 +337,47 @@ class VectorDBOperations:
         except Exception as e:
             logger.error(f"Error counting documents: {e}")
             return 0
+    
+    def get_filter_statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics about available filter values in the collection.
+        Useful for understanding what filters can be applied.
+        
+        Returns:
+            Dictionary with filter statistics
+        """
+        try:
+            # Scroll through all documents to gather statistics
+            all_points, _ = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=10000  # Adjust based on collection size
+            )
+            
+            categories = set()
+            countries = set()
+            languages = set()
+            channels = set()
+            
+            for point in all_points:
+                payload = point.payload
+                if 'category' in payload:
+                    categories.add(payload['category'])
+                if 'country' in payload:
+                    countries.add(payload['country'])
+                if 'language' in payload:
+                    languages.add(payload['language'])
+                if 'channel' in payload:
+                    channels.add(payload['channel'])
+            
+            return {
+                'total_documents': len(all_points),
+                'available_categories': sorted(list(categories)),
+                'available_countries': sorted(list(countries)),
+                'available_languages': sorted(list(languages)),
+                'total_channels': len(channels),
+                'sample_channels': sorted(list(channels))[:20]  # First 20 channels
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting filter statistics: {e}")
+            return {}

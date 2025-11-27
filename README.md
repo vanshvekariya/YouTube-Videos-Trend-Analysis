@@ -9,6 +9,9 @@ This POC demonstrates:
 - **Semantic Search**: Find videos based on meaning, not just keywords
 - **Data Pipeline**: Ingest and process YouTube trending data from Kaggle
 - **Embeddings**: Generate vector representations using sentence-transformers or OpenAI
+- **Enhanced Metadata Filtering**: Rich filtering capabilities with consistent SQL and Vector DB data
+
+> 📖 **New**: See [ENHANCED_INGESTION.md](ENHANCED_INGESTION.md) for details on the unified data processing pipeline with advanced filtering capabilities.
 
 ## 📁 Project Structure
 

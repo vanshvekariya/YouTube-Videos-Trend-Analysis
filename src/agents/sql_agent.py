@@ -81,47 +81,68 @@ class SQLAgent(BaseAgent):
     
     def _initialize_agent(self) -> None:
         """Initialize LangChain SQL agent"""
+        
+        # Create a detailed prefix with exact column names
+        prefix = f"""You are an expert YouTube trends analyst with access to a SQLite database.
+
+Database: {self.db_path}
+Table: {self.table_name}
+
+IMPORTANT - EXACT COLUMN NAMES (use these exactly as shown):
+┌─────────────────────────────────┬──────────────────────────────────────┐
+│ Column Name                     │ Description                          │
+├─────────────────────────────────┼──────────────────────────────────────┤
+│ video_id                        │ Unique identifier (TEXT)             │
+│ title                           │ Video title (TEXT)                   │
+│ description                     │ Video description (TEXT)             │
+│ tags                            │ Space-separated tags (TEXT)          │
+│ category_id                     │ Numeric category ID (INTEGER)        │
+│ category_name                   │ Category name (TEXT)                 │
+│ channel_title                   │ Channel name (TEXT)                  │
+│ country                         │ Country code (TEXT)                  │
+│ language                        │ Detected language (TEXT)             │
+│ publish_time                    │ Publication timestamp (TIMESTAMP)    │
+│ first_trend_date                │ First trending date (DATE)           │
+│ last_trend_date                 │ Last trending date (DATE)            │
+│ days_trending_unique            │ Unique days trending (INTEGER)       │
+│ longest_consecutive_streak_days │ Longest streak (INTEGER)             │
+│ views                           │ View count (INTEGER) ⚠️              │
+│ likes                           │ Like count (INTEGER) ⚠️              │
+│ comment_count                   │ Comment count (INTEGER) ⚠️           │
+└─────────────────────────────────┴──────────────────────────────────────┘
+
+⚠️ CRITICAL COLUMN NAME MAPPINGS:
+- For VIEW COUNT: Use "views" NOT "view_count" or "view_counts"
+- For LIKE COUNT: Use "likes" NOT "like_count" or "like_counts"
+- For COMMENTS: Use "comment_count" NOT "comments" or "comment_counts"
+- For CHANNEL: Use "channel_title" NOT "channel" or "channel_name"
+
+COMMON QUERY PATTERNS:
+1. Top channels by views: SELECT channel_title, SUM(views) AS total_views FROM videos GROUP BY channel_title ORDER BY total_views DESC LIMIT N;
+2. Top videos by likes: SELECT title, likes, views FROM videos ORDER BY likes DESC LIMIT N;
+3. Category analysis: SELECT category_name, COUNT(*) as count, AVG(views) as avg_views FROM videos GROUP BY category_name;
+4. Trending analysis: SELECT title, days_trending_unique, longest_consecutive_streak_days FROM videos ORDER BY days_trending_unique DESC;
+
+Your goal is to:
+1. Understand the user's question
+2. Generate SQL queries using the EXACT column names above
+3. Execute them against the database
+4. Return results in clear, natural language
+
+If you encounter a "no such column" error, check the column names table above and use the exact names shown.
+"""
+        
         self.agent_executor = create_sql_agent(
             llm=self.llm,
             db=self.db,
             agent_type="openai-tools",
             verbose=True,
             handle_parsing_errors=True,
-            extra_prompt_messages=[
-                f"""You are an expert YouTube trends analyst with access to a SQLite database.
-                
-                Database: {self.db_path}
-                Table: {self.table_name}
-                
-                The 'videos' table contains the following columns:
-                - video_id: Unique identifier
-                - title: Video title
-                - description: Video description
-                - tags: Space-separated tags
-                - category_id: Numeric category ID
-                - category_name: Category name (Music, Gaming, Education, etc.)
-                - channel_title: Channel name
-                - country: Country code (CA for Canada)
-                - language: Detected language
-                - publish_time: When video was published
-                - first_trend_date: First date video trended
-                - last_trend_date: Last date video trended
-                - days_trending_unique: Number of unique days trending
-                - longest_consecutive_streak_days: Longest consecutive trending streak
-                - views: View count
-                - likes: Like count
-                - comment_count: Comment count
-                
-                Your goal is to:
-                1. Understand the user's question
-                2. Generate appropriate SQL queries
-                3. Execute them against the database
-                4. Return results in clear, natural language
-                
-                Focus on providing insights about trending patterns, popular categories,
-                top channels, engagement metrics, and temporal trends.
-                """
-            ]
+            prefix=prefix,
+            max_iterations=15,
+            agent_executor_kwargs={
+                "handle_parsing_errors": True
+            }
         )
         logger.info("SQL Agent executor initialized")
     
