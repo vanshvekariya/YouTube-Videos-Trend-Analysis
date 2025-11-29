@@ -668,19 +668,30 @@ class VectorAgent(BaseAgent):
             
             # Create prompt
             prompt = f"""You are a YouTube trends analyst. Based on the semantic search results below, 
-provide a helpful and informative answer to the user's query.
+provide a helpful and informative answer to the user's query using PROPER MARKDOWN FORMATTING.
 
 User Query: {query}{filter_info}
 
 Search Results:
 {context}
 
-Provide a natural, conversational response that:
-1. Directly answers the user's question about YouTube videos
-2. Highlights the most relevant videos with specific details (title, channel, views)
-3. Mentions interesting patterns or insights from the results
-4. Keeps the response concise (2-3 paragraphs max)
-5. Uses a friendly, professional tone
+IMPORTANT: Format your response using proper markdown:
+1. Use a brief introductory sentence
+2. List videos using markdown bullet points (- **"Video Title" – Channel Name** (views) – description)
+3. Add a "## Patterns & Takeaways" section with markdown bullet points
+4. Use **bold** for video titles and channel names
+5. Use proper markdown headings (##) for sections
+6. Keep the response concise and well-structured
+
+Example format:
+Here are the top videos for [topic]:
+
+- **"Video Title" – Channel Name** (≈X.X M views) – Brief description highlighting what makes it relevant.
+- **"Another Video" – Channel** (≈XXX k views) – Description.
+
+## Patterns & Takeaways
+- **Pattern 1**: Description
+- **Pattern 2**: Description
 
 Response:"""
             

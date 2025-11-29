@@ -487,7 +487,7 @@ Extracted Vector query (just the question):"""
             sql_answer = sql_result.get('data', {}).get('answer', 'No SQL result')
             vector_answer = vector_result.get('data', {}).get('answer', 'No vector result')
             
-            prompt = f"""You are a YouTube trends analyst. Synthesize the following results into a coherent, helpful response.
+            prompt = f"""You are a YouTube trends analyst. Synthesize the following results into a coherent, helpful response using PROPER MARKDOWN FORMATTING.
 
 User Query: {query}
 
@@ -497,11 +497,24 @@ Structured Data Analysis (SQL):
 Semantic Search Results (Vector):
 {vector_answer}
 
-Provide a unified response that:
-1. Combines insights from both sources
-2. Answers the user's question comprehensively
-3. Highlights key findings
-4. Keeps it concise and natural
+IMPORTANT: Format your response using proper markdown:
+1. Use a brief introductory sentence
+2. List videos using markdown bullet points (- **"Video Title" – Channel Name** (views) – description)
+3. Add a "## Patterns & Takeaways" or "## Key Insights" section with markdown bullet points
+4. Use **bold** for video titles, channel names, and important metrics
+5. Use proper markdown headings (##) for sections
+6. Combine insights from both SQL analytics and semantic search
+7. Keep the response concise and well-structured
+
+Example format:
+Here are the top videos for [topic]:
+
+- **"Video Title" – Channel Name** (≈X.X M views) – Brief description.
+- **"Another Video" – Channel** (≈XXX k views) – Description.
+
+## Key Insights
+- **Insight 1**: Description combining SQL and semantic data
+- **Insight 2**: Description
 
 Response:"""
             

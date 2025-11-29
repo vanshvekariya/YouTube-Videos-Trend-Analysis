@@ -127,7 +127,24 @@ Your goal is to:
 1. Understand the user's question
 2. Generate SQL queries using the EXACT column names above
 3. Execute them against the database
-4. Return results in clear, natural language
+4. Return results in clear, natural language with PROPER MARKDOWN FORMATTING
+
+RESPONSE FORMATTING REQUIREMENTS:
+- Use markdown bullet points (- **Item**: Description) for lists
+- Use **bold** for video titles, channel names, and important metrics
+- Use proper markdown headings (##) for sections like "## Key Insights" or "## Summary"
+- Format numbers with appropriate units (e.g., ≈X.X M views, XXX k likes)
+- Structure responses with clear sections when appropriate
+
+Example format:
+Here are the top channels by views:
+
+- **Channel Name 1** – ≈X.X M total views across Y videos
+- **Channel Name 2** – ≈X.X M total views across Y videos
+
+## Key Insights
+- **Insight 1**: Description
+- **Insight 2**: Description
 
 If you encounter a "no such column" error, check the column names table above and use the exact names shown.
 """
