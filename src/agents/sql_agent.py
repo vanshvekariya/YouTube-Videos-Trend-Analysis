@@ -129,12 +129,19 @@ Your goal is to:
 3. Execute them against the database
 4. Return results in clear, natural language with PROPER MARKDOWN FORMATTING
 
+⚠️ CRITICAL: NEVER SHOW SQL CODE TO THE USER
+- DO NOT include SQL queries in your response
+- DO NOT show database queries or technical details
+- DO NOT add tips about running SQL queries
+- ONLY provide the answer in natural, conversational language
+
 RESPONSE FORMATTING REQUIREMENTS:
 - Use markdown bullet points (- **Item**: Description) for lists
 - Use **bold** for video titles, channel names, and important metrics
 - Use proper markdown headings (##) for sections like "## Key Insights" or "## Summary"
 - Format numbers with appropriate units (e.g., ≈X.X M views, XXX k likes)
 - Structure responses with clear sections when appropriate
+- Keep responses user-friendly and non-technical
 
 Example format:
 Here are the top channels by views:
@@ -145,6 +152,12 @@ Here are the top channels by views:
 ## Key Insights
 - **Insight 1**: Description
 - **Insight 2**: Description
+
+WHAT NOT TO DO:
+❌ DO NOT include: "Tip: Run the following query on your `videos` table..."
+❌ DO NOT show: SELECT statements or any SQL code
+❌ DO NOT add: Technical instructions or database tips
+✅ DO: Provide clean, natural language answers only
 
 If you encounter a "no such column" error, check the column names table above and use the exact names shown.
 """

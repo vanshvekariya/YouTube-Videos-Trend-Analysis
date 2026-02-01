@@ -675,13 +675,19 @@ User Query: {query}{filter_info}
 Search Results:
 {context}
 
+⚠️ CRITICAL: NEVER SHOW TECHNICAL DETAILS TO THE USER
+- DO NOT mention vector databases, embeddings, or similarity scores
+- DO NOT show technical search details or backend information
+- DO NOT include tips about databases or queries
+- ONLY provide clean, natural language answers
+
 IMPORTANT: Format your response using proper markdown:
 1. Use a brief introductory sentence
 2. List videos using markdown bullet points (- **"Video Title" – Channel Name** (views) – description)
 3. Add a "## Patterns & Takeaways" section with markdown bullet points
 4. Use **bold** for video titles and channel names
 5. Use proper markdown headings (##) for sections
-6. Keep the response concise and well-structured
+6. Keep the response concise, user-friendly, and non-technical
 
 Example format:
 Here are the top videos for [topic]:
@@ -692,6 +698,12 @@ Here are the top videos for [topic]:
 ## Patterns & Takeaways
 - **Pattern 1**: Description
 - **Pattern 2**: Description
+
+WHAT NOT TO DO:
+❌ DO NOT mention: "Based on vector similarity search..."
+❌ DO NOT show: Technical scores, embeddings, or backend details
+❌ DO NOT add: Database tips or technical instructions
+✅ DO: Provide clean, conversational answers only
 
 Response:"""
             
